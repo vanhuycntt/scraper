@@ -11,10 +11,16 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.scheduling.TaskScheduler;
+import org.springframework.scheduling.Trigger;
+import org.springframework.scheduling.TriggerContext;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.scheduling.annotation.SchedulingConfigurer;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
+import org.springframework.scheduling.config.CronTask;
+import org.springframework.scheduling.config.ScheduledTaskRegistrar;
 
+import java.util.Date;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.IntStream;
@@ -24,29 +30,45 @@ import java.util.stream.IntStream;
 public class SchedulerTaskConfig {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(SchedulerTaskConfig.class);
-    @Autowired
-    private KafkaTemplate<String, Review> kafkaTemplate;
 
     @Bean()
     public TaskScheduler taskScheduler() {
         ThreadPoolTaskScheduler threadPoolTaskScheduler = new ThreadPoolTaskScheduler();
         threadPoolTaskScheduler.setPoolSize(15);
         threadPoolTaskScheduler.setThreadNamePrefix("scheduler-task");
+        threadPoolTaskScheduler.setRemoveOnCancelPolicy(true);
         return threadPoolTaskScheduler;
     }
 
     @Scheduled(initialDelay = 2000L, fixedRate = 15 * 60 * 1_000L)
-    public void doReviewTask() {
+    @Scheduled(initialDelay = 2000L, fixedDelay = 60 * 1_000L)
+    public void reviewTask() {
         LOGGER.info("start producing reviews");
 
         IntStream.range(0, 100).mapToObj(this::jsonToReview).forEach(rv-> {
-            try {
-                kafkaTemplate.send("udemy-reviews", rv).get();
+            /*try {
+                //kafkaTemplate.send("udemy-reviews", rv).get();
             } catch (InterruptedException | ExecutionException ex) {
                 LOGGER.error("Failure to produce the review" + rv.getId(), ex);
-            }
+            }*/
         });
         LOGGER.info("completed producing reviews");
+    }
+
+    @Bean
+    public SchedulingConfigurer generateReportTask() {
+        return new SchedulingConfigurer() {
+            @Override
+            public void configureTasks(ScheduledTaskRegistrar taskRegistrar) {
+                taskRegistrar.addTriggerTask(() -> {
+                    System.out.print("task configurer");
+                }, (context)-> null);
+
+                taskRegistrar.getTriggerTaskList().forEach(triggerTask -> {
+                    taskRegistrar.scheduleTriggerTask(triggerTask);
+                });
+            }
+        };
     }
 
     public Review jsonToReview(int idx) {
