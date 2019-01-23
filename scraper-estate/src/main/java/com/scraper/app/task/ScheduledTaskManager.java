@@ -15,7 +15,6 @@ import org.springframework.stereotype.Component;
 import java.time.LocalDateTime;
 import java.util.Set;
 
-@Component
 public class ScheduledTaskManager implements ApplicationListener<ContextRefreshedEvent> {
     private static final Logger LOGGER = LoggerFactory.getLogger(ScheduledTaskManager.class);
 
