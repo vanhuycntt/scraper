@@ -1,2 +1,2 @@
 org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
-com.scraper.scheduler.SchedulerConfig
+com.scraper.scheduler.SchedulerAutoConfiguration

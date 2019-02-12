@@ -19,4 +19,5 @@ public class SchedulingPersistentConfiguration {
     public SavedSchedulingAnnotationBeanPostProcessor scheduledAnnotationProcessor() {
         return new SavedSchedulingAnnotationBeanPostProcessor();
     }
+
 }

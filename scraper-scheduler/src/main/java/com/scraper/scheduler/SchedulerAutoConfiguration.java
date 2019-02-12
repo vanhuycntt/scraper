@@ -11,7 +11,7 @@ import java.util.stream.IntStream;
 
 @Configuration
 @EnableSavedScheduling
-public class SchedulerConfig {
+public class SchedulerAutoConfiguration {
     @Bean()
     public TaskScheduler taskScheduler() {
         ThreadPoolTaskScheduler threadPoolTaskScheduler = new ThreadPoolTaskScheduler();
@@ -20,8 +20,8 @@ public class SchedulerConfig {
         threadPoolTaskScheduler.setRemoveOnCancelPolicy(true);
         return threadPoolTaskScheduler;
     }
+
     @Scheduled(initialDelay = 2000L, fixedRate = 15 * 60 * 1_000L)
-    @Scheduled(initialDelay = 2000L, fixedDelay = 60 * 1_000L)
     public void reviewTask() {
         IntStream.range(0, 10).forEach(System.out::println);
     }

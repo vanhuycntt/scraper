@@ -8,7 +8,6 @@ import org.springframework.aop.support.AopUtils;
 import org.springframework.beans.factory.*;
 import org.springframework.beans.factory.config.AutowireCapableBeanFactory;
 import org.springframework.beans.factory.config.ConfigurableBeanFactory;
-import org.springframework.beans.factory.config.DestructionAwareBeanPostProcessor;
 import org.springframework.beans.factory.config.NamedBeanHolder;
 import org.springframework.beans.factory.support.MergedBeanDefinitionPostProcessor;
 import org.springframework.beans.factory.support.RootBeanDefinition;
@@ -38,9 +37,8 @@ import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.stream.Collectors;
 
-public class SavedSchedulingAnnotationBeanPostProcessor implements ScheduledTaskHolder, MergedBeanDefinitionPostProcessor, DestructionAwareBeanPostProcessor,
+public class SavedSchedulingAnnotationBeanPostProcessor implements SchedulingTaskHolder, MergedBeanDefinitionPostProcessor,
         Ordered, EmbeddedValueResolverAware, BeanNameAware, BeanFactoryAware, ApplicationContextAware,
         SmartInitializingSingleton, ApplicationListener<ContextRefreshedEvent>, DisposableBean {
 
@@ -76,7 +74,7 @@ public class SavedSchedulingAnnotationBeanPostProcessor implements ScheduledTask
 
     private final Map<Object, Set<ScheduledTask>> scheduledTasks = new IdentityHashMap<>(16);
 
-    private final Map<Object, Set<Task> > annotatedTasks = new IdentityHashMap<>(16);
+    private final Map<Object, Set<Task> > declaredTasks = new IdentityHashMap<>(16);
 
     /**
      * Create a default {@code ScheduledAnnotationBeanPostProcessor}.
@@ -240,7 +238,7 @@ public class SavedSchedulingAnnotationBeanPostProcessor implements ScheduledTask
         this.registrar.afterPropertiesSet();
 
         //start scheduled tasks
-        this.annotatedTasks.forEach((declaredBean, tasks)-> {
+        /*this.declaredTasks.forEach((declaredBean, tasks)-> {
             Set<ScheduledTask>  scheduledTasks = tasks.stream().map(t -> {
                 if(t instanceof FixedRateTask) {
                     return this.registrar.scheduleFixedRateTask((FixedRateTask)t);
@@ -257,7 +255,7 @@ public class SavedSchedulingAnnotationBeanPostProcessor implements ScheduledTask
                 Set<ScheduledTask> regTasks = this.scheduledTasks.computeIfAbsent(declaredBean, key -> new LinkedHashSet<>(4));
                 regTasks.addAll(scheduledTasks);
             }
-        });
+        });*/
     }
 
     private <T> T resolveSchedulerBean(BeanFactory beanFactory, Class<T> schedulerType, boolean byName) {
@@ -446,8 +444,8 @@ public class SavedSchedulingAnnotationBeanPostProcessor implements ScheduledTask
             Assert.isTrue(processedSchedule, errorMessage);
 
             // Finally register the scheduled tasks
-            synchronized (this.annotatedTasks) {
-                Set<Task> regTasks = this.annotatedTasks.computeIfAbsent(bean, key -> new LinkedHashSet<>(4));
+            synchronized (this.declaredTasks) {
+                Set<Task> regTasks = this.declaredTasks.computeIfAbsent(bean, key -> new LinkedHashSet<>(4));
                 regTasks.addAll(tasks);
             }
         }
@@ -490,19 +488,18 @@ public class SavedSchedulingAnnotationBeanPostProcessor implements ScheduledTask
      * @since 5.0.2
      */
     @Override
-    public Set<ScheduledTask> getScheduledTasks() {
-        Set<ScheduledTask> result = new LinkedHashSet<>();
-        synchronized (this.scheduledTasks) {
-            Collection<Set<ScheduledTask>> allTasks = this.scheduledTasks.values();
-            for (Set<ScheduledTask> tasks : allTasks) {
+    public Set<Task> getDeclaredTasks() {
+        Set<Task> result = new LinkedHashSet<>();
+        synchronized (this.declaredTasks) {
+            Collection<Set<Task>> allTasks = this.declaredTasks.values();
+            for (Set<Task> tasks : allTasks) {
                 result.addAll(tasks);
             }
         }
-        result.addAll(this.registrar.getScheduledTasks());
         return result;
     }
 
-    @Override
+    /*@Override
     public void postProcessBeforeDestruction(Object bean, String beanName) {
         Set<ScheduledTask> tasks;
         synchronized (this.scheduledTasks) {
@@ -520,7 +517,7 @@ public class SavedSchedulingAnnotationBeanPostProcessor implements ScheduledTask
         synchronized (this.scheduledTasks) {
             return this.scheduledTasks.containsKey(bean);
         }
-    }
+    }*/
 
     @Override
     public void destroy() {
